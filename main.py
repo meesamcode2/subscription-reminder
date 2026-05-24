@@ -9,9 +9,10 @@ from email.mime.multipart import MIMEMultipart
 # =========================
 # 🔐 EMAIL CONFIG
 # =========================
+import os
 
-MY_EMAIL = "swapstersupport@gmail.com"
-MY_PASSWORD = "zuou voaw uzzy otlb"
+email = os.getenv("EMAIL")
+password = os.getenv("PASSWORD")
 
 # 👉 JIS EMAIL PAR SAB SEND KARNA HAI
 RECEIVER_EMAIL = "muhammadmeesam90@gmail.com"   # same ya koi aur

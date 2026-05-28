@@ -12,17 +12,16 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Install Libraries
         run: |
-          pip install pandas
-          pip install openpyxl
+          pip install pandas openpyxl
 
       - name: Run Script
         run: python main.py

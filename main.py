@@ -1,41 +1,44 @@
-
-
 import datetime
 import pandas as pd
 import smtplib
+import os
+
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 # =========================
 # 🔐 EMAIL CONFIG
 # =========================
-import os
 
-email = os.getenv("EMAIL")
-password = os.getenv("PASSWORD")
+MY_EMAIL = os.getenv("EMAIL")
+MY_PASSWORD = os.getenv("PASSWORD")
 
-# 👉 JIS EMAIL PAR SAB SEND KARNA HAI
-RECEIVER_EMAIL = "muhammadmeesam90@gmail.com"   # same ya koi aur
+# Receiver
+RECEIVER_EMAIL = "muhammadmeesam90@gmail.com"
 
 # =========================
 # 📅 TODAY
 # =========================
+
 today = datetime.datetime.now()
 today_day = today.day
 
 # =========================
 # 📂 LOAD CSV
 # =========================
+
 data = pd.read_csv("payment.csv")
 
 # =========================
 # 🔁 LOOP
 # =========================
+
 for index, row in data.iterrows():
 
-    if row["due_day"] == today_day:
+    if int(row["due_day"]) == today_day:
 
         msg = MIMEMultipart("alternative")
+
         msg["From"] = MY_EMAIL
         msg["To"] = RECEIVER_EMAIL
         msg["Subject"] = f"Payment Reminder - {row['name']}"
@@ -56,10 +59,12 @@ for index, row in data.iterrows():
                         <th style="padding:10px; border:1px solid #ddd;">Description</th>
                         <th style="padding:10px; border:1px solid #ddd;">Amount</th>
                     </tr>
+
                     <tr>
                         <td style="padding:10px; border:1px solid #ddd;">
                             {row['service']} Subscription
                         </td>
+
                         <td style="padding:10px; border:1px solid #ddd;">
                             Rs {row['price']}
                         </td>
@@ -79,8 +84,11 @@ for index, row in data.iterrows():
 
         try:
             with smtplib.SMTP("smtp.gmail.com", 587) as connection:
+
                 connection.starttls()
+
                 connection.login(MY_EMAIL, MY_PASSWORD)
+
                 connection.send_message(msg)
 
             print(f"✅ Reminder sent for {row['name']}")

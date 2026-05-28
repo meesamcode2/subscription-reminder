@@ -3,7 +3,6 @@ name: Daily Reminder
 on:
   schedule:
     - cron: '0 4 * * *'
-
   workflow_dispatch:
 
 jobs:
@@ -20,10 +19,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install Libraries
-        run: |
-          pip install pandas openpyxl
+        run: pip install pandas openpyxl
 
-      - name: Show Files
+      - name: Debug Files
         run: ls -R
 
       - name: Run Script

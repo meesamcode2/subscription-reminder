@@ -9,6 +9,16 @@ from email.mime.multipart import MIMEMultipart
 # =========================
 # 🔐 EMAIL CONFIG
 # =========================
+import os
+
+MY_EMAIL = os.getenv("EMAIL")
+MY_PASSWORD = os.getenv("PASSWORD")
+
+print("EMAIL loaded:", bool(MY_EMAIL))
+print("PASSWORD loaded:", bool(MY_PASSWORD))
+
+if MY_EMAIL:
+    print("Email starts with:", MY_EMAIL[:5] + "...")
 
 MY_EMAIL = os.getenv("EMAIL")
 MY_PASSWORD = os.getenv("PASSWORD")

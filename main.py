@@ -1,109 +1,116 @@
 import datetime
-import pandas as pd
+import os
 import smtplib
-import os
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
-from email.mime.text import MIMEText
+import pandas as pd
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-# =========================
-# 🔐 EMAIL CONFIG
-# =========================
-import os
 
 MY_EMAIL = os.getenv("EMAIL")
 MY_PASSWORD = os.getenv("PASSWORD")
-
-print("EMAIL loaded:", bool(MY_EMAIL))
-print("PASSWORD loaded:", bool(MY_PASSWORD))
-
-if MY_EMAIL:
-    print("Email starts with:", MY_EMAIL[:5] + "...")
-
-MY_EMAIL = os.getenv("EMAIL")
-MY_PASSWORD = os.getenv("PASSWORD")
-
-# Receiver
 RECEIVER_EMAIL = "muhammadmeesam90@gmail.com"
 
-# =========================
-# 📅 TODAY
-# =========================
+if not MY_EMAIL:
+    raise RuntimeError("GitHub secret EMAIL missing hai.")
 
-today = datetime.datetime.now()
-today_day = today.day
+if not MY_PASSWORD:
+    raise RuntimeError("GitHub secret PASSWORD missing hai.")
 
-# =========================
-# 📂 LOAD CSV
-# =========================
 
-data = pd.read_csv("payment.csv")
+# Manual testing mein TEST_DAY use hoga,
+# scheduled run mein Pakistan ka current day.
+test_day = os.getenv("TEST_DAY", "").strip()
 
-# =========================
-# 🔁 LOOP
-# =========================
+if test_day:
+    today_day = int(test_day)
+    print(f"Test mode: due_day {today_day}")
+else:
+    pakistan_time = datetime.datetime.now(ZoneInfo("Asia/Karachi"))
+    today_day = pakistan_time.day
+    print(f"Pakistan date: {pakistan_time:%Y-%m-%d %H:%M}")
 
-for index, row in data.iterrows():
 
-    if int(row["due_day"]) == today_day:
+csv_path = Path(__file__).with_name("payment.csv")
 
-        msg = MIMEMultipart("alternative")
+if not csv_path.exists():
+    raise FileNotFoundError(f"CSV file nahi mili: {csv_path}")
 
-        msg["From"] = MY_EMAIL
-        msg["To"] = RECEIVER_EMAIL
-        msg["Subject"] = f"Payment Reminder - {row['name']}"
+data = pd.read_csv(csv_path)
+required_columns = {"name", "service", "due_day", "price"}
 
-        html = f"""
-        <html>
-        <body style="font-family: Arial; background:#f6f6f6; padding:20px;">
-            <div style="max-width:600px; margin:auto; background:white; padding:20px; border-radius:10px;">
+if not required_columns.issubset(data.columns):
+    missing = required_columns - set(data.columns)
+    raise ValueError(f"CSV columns missing hain: {missing}")
 
-                <h2 style="text-align:center;">Payment Invoice</h2>
-                <hr>
 
-                <p><strong>Name:</strong> {row['name']}</p>
-                <p><strong>Service:</strong> {row['service']}</p>
+due_rows = data[data["due_day"].astype(int) == today_day]
 
-                <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-                    <tr style="background:#eee;">
-                        <th style="padding:10px; border:1px solid #ddd;">Description</th>
-                        <th style="padding:10px; border:1px solid #ddd;">Amount</th>
-                    </tr>
+if due_rows.empty:
+    print(f"Due day {today_day} ke liye koi reminder nahi hai.")
+else:
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as connection:
+        connection.login(MY_EMAIL, MY_PASSWORD)
 
-                    <tr>
-                        <td style="padding:10px; border:1px solid #ddd;">
-                            {row['service']} Subscription
-                        </td>
+        for _, row in due_rows.iterrows():
+            msg = MIMEMultipart("alternative")
+            msg["From"] = MY_EMAIL
+            msg["To"] = RECEIVER_EMAIL
+            msg["Subject"] = f"Payment Reminder - {row['name']}"
 
-                        <td style="padding:10px; border:1px solid #ddd;">
-                            Rs {row['price']}
-                        </td>
-                    </tr>
-                </table>
+            html = f"""
+            <html>
+            <body style="font-family:Arial; background:#f6f6f6; padding:20px;">
+                <div style="
+                    max-width:600px;
+                    margin:auto;
+                    background:white;
+                    padding:20px;
+                    border-radius:10px;
+                ">
+                    <h2 style="text-align:center;">Payment Invoice</h2>
+                    <hr>
 
-                <p style="margin-top:20px;">
-                    Reminder: {row['name']} ka payment due hai.
-                </p>
+                    <p><strong>Name:</strong> {row['name']}</p>
+                    <p><strong>Service:</strong> {row['service']}</p>
 
-            </div>
-        </body>
-        </html>
-        """
+                    <table style="
+                        width:100%;
+                        border-collapse:collapse;
+                        margin-top:20px;
+                    ">
+                        <tr style="background:#eeeeee;">
+                            <th style="padding:10px; border:1px solid #dddddd;">
+                                Description
+                            </th>
+                            <th style="padding:10px; border:1px solid #dddddd;">
+                                Amount
+                            </th>
+                        </tr>
 
-        msg.attach(MIMEText(html, "html"))
+                        <tr>
+                            <td style="padding:10px; border:1px solid #dddddd;">
+                                {row['service']} Subscription
+                            </td>
+                            <td style="padding:10px; border:1px solid #dddddd;">
+                                Rs {row['price']}
+                            </td>
+                        </tr>
+                    </table>
 
-        try:
-            with smtplib.SMTP("smtp.gmail.com", 587) as connection:
+                    <p style="margin-top:20px;">
+                        Reminder: {row['name']} ka payment due hai.
+                    </p>
+                </div>
+            </body>
+            </html>
+            """
 
-                connection.starttls()
+            msg.attach(MIMEText(html, "html"))
+            connection.send_message(msg)
 
-                connection.login(MY_EMAIL, MY_PASSWORD)
+            print(f"Reminder sent successfully for {row['name']}")
 
-                connection.send_message(msg)
-
-            print(f"✅ Reminder sent for {row['name']}")
-
-        except Exception as e:
-            print(f"❌ Error: {e}")
-
-print("🚀 Done")
+print("Done")

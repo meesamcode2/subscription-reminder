@@ -33,39 +33,4 @@ jobs:
           EMAIL: ${{ secrets.EMAIL }}
           PASSWORD: ${{ secrets.PASSWORD }}
           TEST_DAY: ${{ inputs.test_day }}
-        run: python main.pyname: Daily Payment Reminder
-
-on:
-  schedule:
-    - cron: "7 9 * * *"
-      timezone: "Asia/Karachi"
-
-  workflow_dispatch:
-    inputs:
-      test_day:
-        description: "Testing ke liye due day, e.g. 6"
-        required: false
-        type: string
-
-jobs:
-  send-reminders:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-
-      - name: Install dependencies
-        run: pip install pandas
-
-      - name: Send payment reminders
-        env:
-          EMAIL: ${{ secrets.EMAIL }}
-          PASSWORD: ${{ secrets.PASSWORD }}
-          TEST_DAY: ${{ inputs.test_day }}
         run: python main.py
